@@ -750,8 +750,11 @@ elif page == "📈 EDA & Charts":
         c1.plotly_chart(fig, use_container_width=True)
 
         monthly = run_query("""
-            SELECT DATE_FORMAT(timestamp,'%Y-%m') AS month, COUNT(*) AS claims
-            FROM claims GROUP BY month ORDER BY month
+            SELECT strftime('%Y-%m', timestamp) AS month,
+            COUNT(*) AS claims
+            FROM claims
+            GROUP BY month
+            ORDER BY month
         """)
         fig2 = px.line(monthly, x='month', y='claims', markers=True,
                        title="Claims Over Time", color_discrete_sequence=["#40916c"])
