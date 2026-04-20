@@ -3,7 +3,26 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 import plotly.express as px
 import plotly.graph_objects as go
+import pandas as pd
 
+def initialize_db(engine):
+    # Load CSV
+    providers = pd.read_csv("data/providers_data.csv")
+    receivers = pd.read_csv("data/receivers_data.csv")
+    food = pd.read_csv("data/food_listings_data.csv")
+    claims = pd.read_csv("data/claims_data.csv")
+
+    # Clean column names
+    providers.columns = providers.columns.str.lower()
+    receivers.columns = receivers.columns.str.lower()
+    food.columns = food.columns.str.lower()
+    claims.columns = claims.columns.str.lower()
+
+    # Insert into SQLite
+    providers.to_sql("providers", engine, if_exists="replace", index=False)
+    receivers.to_sql("receivers", engine, if_exists="replace", index=False)
+    food.to_sql("food_listings", engine, if_exists="replace", index=False)
+    claims.to_sql("claims", engine, if_exists="replace", index=False)
 st.set_page_config(
     page_title="Food Wastage Management System",
     page_icon="🥗",
@@ -185,16 +204,15 @@ st.markdown("""
     .stSuccess { border-radius: 8px; }
 </style>
 """, unsafe_allow_html=True)
-
+from sqlalchemy import create_engine
+import streamlit as st
 
 @st.cache_resource
 def get_engine():
-    return create_engine(
-        "mysql+mysqlconnector://root:Ironman%403@localhost/food_waste_db",
-        pool_pre_ping=True
-    )
+    return create_engine("sqlite:///food_waste.db")
 
 engine = get_engine()
+initialize_db(engine)
 
 def run_query(sql, params=None):
     with engine.connect() as conn:
