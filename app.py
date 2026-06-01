@@ -5,24 +5,30 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 
+# REPLACE your existing initialize_db function with this:
 def initialize_db(engine):
-    # Load CSV
+    with engine.connect() as conn:
+        try:
+            count = conn.execute(text("SELECT COUNT(*) FROM providers")).scalar()
+            if count > 0:
+                return  # Already initialized, skip
+        except:
+            pass  # Tables don't exist yet, continue
+
     providers = pd.read_csv("data/providers_data.csv")
     receivers = pd.read_csv("data/receivers_data.csv")
-    food = pd.read_csv("data/food_listings_data.csv")
-    claims = pd.read_csv("data/claims_data.csv")
+    food      = pd.read_csv("data/food_listings_data.csv")
+    claims    = pd.read_csv("data/claims_data.csv")
 
-    # Clean column names
     providers.columns = providers.columns.str.lower()
     receivers.columns = receivers.columns.str.lower()
-    food.columns = food.columns.str.lower()
-    claims.columns = claims.columns.str.lower()
+    food.columns      = food.columns.str.lower()
+    claims.columns    = claims.columns.str.lower()
 
-    # Insert into SQLite
-    providers.to_sql("providers", engine, if_exists="replace", index=False)
-    receivers.to_sql("receivers", engine, if_exists="replace", index=False)
-    food.to_sql("food_listings", engine, if_exists="replace", index=False)
-    claims.to_sql("claims", engine, if_exists="replace", index=False)
+    providers.to_sql("providers",     engine, if_exists="replace", index=False)
+    receivers.to_sql("receivers",     engine, if_exists="replace", index=False)
+    food.to_sql("food_listings",      engine, if_exists="replace", index=False)
+    claims.to_sql("claims",           engine, if_exists="replace", index=False)
 st.set_page_config(
     page_title="Food Wastage Management System",
     page_icon="🥗",
@@ -520,7 +526,7 @@ elif page == "📊 SQL Queries (15)":
             "sql": """
                 SELECT food_name, quantity, expiry_date, location, food_type
                 FROM food_listings
-                WHERE expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+                WHERE expiry_date BETWEEN DATE('now') AND DATE('now', '+30 days')
                 ORDER BY expiry_date ASC
                 LIMIT 20
             """
@@ -528,7 +534,7 @@ elif page == "📊 SQL Queries (15)":
         {
             "title": "Q15 — Monthly claim trend",
             "sql": """
-                SELECT DATE_FORMAT(timestamp, '%Y-%m') AS month,
+                SELECT strftime('%Y-%m', timestamp) AS month,
                        COUNT(*) AS total_claims,
                        SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) AS completed,
                        SUM(CASE WHEN status='Pending'   THEN 1 ELSE 0 END) AS pending,
