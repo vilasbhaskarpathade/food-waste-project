@@ -8,13 +8,19 @@ import pandas as pd
 # REPLACE your existing initialize_db function with this:
 def initialize_db(engine):
     with engine.connect() as conn:
+        # Check if providers table exists AND has data
         try:
-            count = conn.execute(text("SELECT COUNT(*) FROM providers")).scalar()
-            if count > 0:
-                return  # Already initialized, skip
+            result = conn.execute(text(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='providers'"
+            )).fetchone()
+            if result:  # table exists
+                count = conn.execute(text("SELECT COUNT(*) FROM providers")).scalar()
+                if count > 0:
+                    return  # DB already loaded, skip everything
         except:
-            pass  # Tables don't exist yet, continue
+            pass  # Something went wrong checking, just re-initialize
 
+    # Only reaches here if tables are missing or empty
     providers = pd.read_csv("data/providers_data.csv")
     receivers = pd.read_csv("data/receivers_data.csv")
     food      = pd.read_csv("data/food_listings_data.csv")
@@ -25,10 +31,10 @@ def initialize_db(engine):
     food.columns      = food.columns.str.lower()
     claims.columns    = claims.columns.str.lower()
 
-    providers.to_sql("providers",     engine, if_exists="replace", index=False)
-    receivers.to_sql("receivers",     engine, if_exists="replace", index=False)
-    food.to_sql("food_listings",      engine, if_exists="replace", index=False)
-    claims.to_sql("claims",           engine, if_exists="replace", index=False)
+    providers.to_sql("providers",    engine, if_exists="replace", index=False)
+    receivers.to_sql("receivers",    engine, if_exists="replace", index=False)
+    food.to_sql("food_listings",     engine, if_exists="replace", index=False)
+    claims.to_sql("claims",          engine, if_exists="replace", index=False)
 st.set_page_config(
     page_title="Food Wastage Management System",
     page_icon="🥗",
